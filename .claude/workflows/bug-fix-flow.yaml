@@ -1,0 +1,76 @@
+# Bug Fix Workflow
+# Bug 修复工作流
+
+name: Bug Fix
+description: 系统化的 Bug 诊断和修复流程
+
+steps:
+  - name: "1. 问题收集"
+    agent: debugger
+    actions:
+      - 收集错误信息
+      - 获取复现步骤
+      - 记录相关日志
+    inputs:
+      - error_message
+      - reproduction_steps
+      - environment_info
+
+  - name: "2. 问题定位"
+    agent: debugger
+    actions:
+      - 分析错误堆栈
+      - 搜索相关代码
+      - 确定问题范围
+    output: root-cause-analysis.md
+
+  - name: "3. 编写回归测试"
+    agent: test-writer
+    actions:
+      - 编写失败测试用例
+      - 验证 Bug 可复现
+    priority: high
+
+  - name: "4. 修复 Bug"
+    agent: debugger
+    actions:
+      - 应用最小修复
+      - 确保测试通过
+    principle: "最小改动原则"
+
+  - name: "5. 验证修复"
+    command: /test
+    actions:
+      - 运行相关测试
+      - 执行回归测试
+      - 手动验证修复
+
+  - name: "6. 添加防护措施"
+    actions:
+      - 添加防御性代码
+      - 改善错误处理
+      - 添加日志/监控
+
+  - name: "7. 文档更新"
+    actions:
+      - 更新 CLAUDE.md 常见问题
+      - 记录问题根因
+      - 添加预防措施
+
+  - name: "8. 提交修复"
+    command: /commit
+    commit_type: fix
+    actions:
+      - 引用相关 Issue
+      - 描述修复内容
+
+exit_conditions:
+  - Bug 已修复
+  - 测试全部通过
+  - 无回归问题
+  - 文档已更新
+
+post_mortem:
+  - 问题根因是什么？
+  - 如何防止类似问题？
+  - 是否需要系统改进？
