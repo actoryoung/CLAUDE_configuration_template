@@ -4,73 +4,126 @@
 name: Bug Fix
 description: 系统化的 Bug 诊断和修复流程
 
+# 主控代理：orchestrator
+orchestrator:
+  role: 协调 Bug 修复流程
+  responsibilities:
+    - 收集问题信息
+    - 调度子代理诊断
+    - 验证修复效果
+    - 确保无回归
+
 steps:
   - name: "1. 问题收集"
-    agent: debugger
+    mode: collect
+    executor: orchestrator
     actions:
-      - 收集错误信息
+      - 收集错误信息和堆栈
       - 获取复现步骤
-      - 记录相关日志
+      - 记录环境信息
     inputs:
-      - error_message
-      - reproduction_steps
-      - environment_info
+      - error_message: "错误信息"
+      - reproduction_steps: "复现步骤"
+      - environment_info: "环境信息"
 
-  - name: "2. 问题定位"
-    agent: debugger
+  - name: "2. 代码探索与定位"
+    mode: explore
+    agent: Explore
     actions:
-      - 分析错误堆栈
       - 搜索相关代码
-      - 确定问题范围
+      - 查找错误发生位置
+      - 理解相关模块
+      - 识别可疑代码路径
+    output: affected-files.md
+
+  - name: "3. 根因分析"
+    mode: analyze
+    parallel: false
+    substeps:
+      - name: "3.1 堆栈分析"
+        executor: orchestrator
+        actions:
+          - 分析错误堆栈
+          - 理解调用链
+          - 确定问题位置
+
+      - name: "3.2 假设验证"
+        agent: general-purpose
+        actions:
+          - 列出可能原因
+          - 添加调试日志
+          - 运行验证测试
     output: root-cause-analysis.md
 
-  - name: "3. 编写回归测试"
-    agent: test-writer
+  - name: "4. 编写回归测试"
+    mode: test
+    skill: /test
     actions:
       - 编写失败测试用例
       - 验证 Bug 可复现
+      - 定义期望行为
     priority: high
+    principle: "先写测试，确保 Bug 可复现"
 
-  - name: "4. 修复 Bug"
-    agent: debugger
+  - name: "5. 修复 Bug"
+    mode: fix
+    executor: orchestrator
     actions:
       - 应用最小修复
-      - 确保测试通过
+      - 确保回归测试通过
+      - 检查是否引入新问题
     principle: "最小改动原则"
 
-  - name: "5. 验证修复"
-    command: /test
+  - name: "6. 验证修复"
+    mode: verify
+    skill: /test
     actions:
-      - 运行相关测试
-      - 执行回归测试
+      - 运行回归测试
+      - 执行完整测试套件
       - 手动验证修复
+      - 检查边界情况
 
-  - name: "6. 添加防护措施"
+  - name: "7. 防护措施"
+    mode: protect
+    executor: orchestrator
     actions:
       - 添加防御性代码
       - 改善错误处理
       - 添加日志/监控
+      - 更新文档
 
-  - name: "7. 文档更新"
+  - name: "8. 文档更新"
+    executor: orchestrator
     actions:
       - 更新 CLAUDE.md 常见问题
       - 记录问题根因
       - 添加预防措施
 
-  - name: "8. 提交修复"
-    command: /commit
+  - name: "9. 提交修复"
+    skill: /commit
     commit_type: fix
     actions:
       - 引用相关 Issue
       - 描述修复内容
+      - 说明测试情况
 
 exit_conditions:
-  - Bug 已修复
-  - 测试全部通过
-  - 无回归问题
+  - Bug 已修复（测试通过）
+  - 回归测试无问题
   - 文档已更新
+  - 防护措施已添加
 
+# 事后分析
 post_mortem:
-  - 问题根因是什么？
-  - 如何防止类似问题？
-  - 是否需要系统改进？
+  questions:
+    - "问题根因是什么？"
+    - "如何防止类似问题？"
+    - "是否需要系统改进？"
+    - "是否有其他类似代码？"
+  output: post-mortem.md
+
+# 代理调度策略
+scheduling_strategy:
+  explore_before_fix: sequential   # 先探索后修复
+  test_and_fix: loop               # 测试和修复循环
+  verification: parallel           # 验证可并行

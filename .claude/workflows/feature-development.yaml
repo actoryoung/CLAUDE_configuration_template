@@ -4,73 +4,116 @@
 name: Feature Development
 description: 从需求分析到部署的完整功能开发流程
 
-steps:
-  - name: "1. 需求分析"
-    agent: general-purpose
-    actions:
-      - 分析需求和约束条件
-      - 识别相关文件和依赖
-      - 评估技术可行性
+# 主控代理：orchestrator
+orchestrator:
+  role: 任务分解与协调
+  responsibilities:
+    - 分析需求，判断复杂度
+    - 分配任务给子代理
+    - 整合子代理结果
+    - 跟踪执行进度
 
-  - name: "2. 设计方案"
+steps:
+  - name: "1. 需求分析与代码探索"
+    mode: explore
+    agent: Explore
+    actions:
+      - 查找相关文件和模块
+      - 理解现有代码结构
+      - 识别依赖关系
+      - 评估影响范围
+
+  - name: "2. 架构设计"
+    mode: plan
     agent: Plan
     actions:
       - 设计实现方案
-      - 列出关键文件
-      - 识别架构权衡
+      - 列出关键文件和变更
+      - 识别技术权衡
+      - 评估潜在风险
     output: implementation-plan.md
 
-  - name: "3. TDD 开发"
-    agent: test-writer
-    actions:
-      - "RED: 编写失败测试"
-      - "GREEN: 实现功能"
-      - "REFACTOR: 重构优化"
+  - name: "3. TDD 开发循环"
+    mode: implement
+    parallel: false
+    substeps:
+      - name: "3.1 编写测试"
+        skill: /test
+        actions:
+          - RED: 编写失败测试
+          - 定义接口和行为
+
+      - name: "3.2 实现功能"
+        executor: orchestrator
+        actions:
+          - GREEN: 实现最少代码
+          - 确保测试通过
+
+      - name: "3.3 重构优化"
+        executor: orchestrator
+        actions:
+          - REFACTOR: 优化代码结构
+          - 保持测试通过
     loop: true
     until:
-      - 所有测试通过
-      - 代码符合规范
+      - 所有功能测试通过
+      - 代码符合项目规范
 
   - name: "4. 代码审查"
-    agent: code-reviewer
+    mode: review
+    skill: /review-pr
     actions:
       - 检查代码质量
       - 验证安全性
       - 评估可维护性
+      - 提供改进建议
     output: review-report.md
 
-  - name: "5. 集成测试"
-    command: /test
+  - name: "5. 集成验证"
+    mode: verify
+    skill: /test
     actions:
       - 运行完整测试套件
       - 验证 API 兼容性
       - 检查性能影响
+      - 确认无回归问题
 
   - name: "6. 文档更新"
+    executor: orchestrator
     actions:
-      - 更新 CLAUDE.md
-      - 添加 API 文档
+      - 更新 CLAUDE.md 项目结构
+      - 添加/更新 API 文档
       - 更新 CHANGELOG
 
   - name: "7. 提交代码"
-    command: /commit
+    skill: /commit
     actions:
-      - 暂存变更
-      - 生成提交信息
-      - 创建提交
+      - 暂存变更文件
+      - 生成符合规范的提交信息
+      - 创建 Git 提交
 
-  - name: "8. 创建 PR"
+# 可选：创建 PR
+optional_steps:
+  - name: "8. 创建 Pull Request"
+    executor: orchestrator
     actions:
       - 生成 PR 描述
       - 关联相关 Issue
-      - 请求审查
+      - 添加审查者
 
 exit_conditions:
-  - 所有测试通过
-  - 代码审查通过
+  - 所有功能测试通过
+  - 代码审查无关键问题
   - 文档已更新
-  - CI 检查通过
+  - CI 检查通过（如有）
 
 rollback_actions:
   - 回滚最后一次提交
   - 恢复到开发前状态
+  - 清理临时文件
+
+# 代理调度策略
+scheduling_strategy:
+  explore_and_plan: sequential  # 探索和设计串行
+  test_and_implement: loop      # 测试和实现循环
+  independent_tasks: parallel   # 独立任务并行
