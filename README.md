@@ -10,10 +10,10 @@
 
 ```
 .claude/
-├── commands/           # 通用命令（如 /commit, /review）
-├── agents/             # Agent 配置（如 code-reviewer）
+├── commands/           # 通用命令（如 /commit, /review, /spec）
+├── agents/             # Agent 配置（如 code-reviewer, spec-writer）
 ├── skills/             # 技能脚本（如 tdd-helper）
-├── workflows/          # 工作流定义（如 bug-fix-flow）
+├── workflows/          # 工作流定义（如 spec-driven-tdd）
 ├── prompts/            # 系统提示词
 │   ├── system/         # 默认和严格模式提示词
 │   ├── modes/          # 探索模式等
@@ -25,10 +25,13 @@
 ├── templates/          # 文件模板
 │   ├── docs/           # CLAUDE.md 模板
 │   ├── code/           # README 等代码模板
+│   ├── specs/          # SPEC 规范模板（function/api/feature）
 │   └── git/            # PR/Issue 模板
+├── tools/              # 工具脚本（如 Spec-Kit 安装脚本）
+├── specs/              # 规范文档存储（function/api/feature）
 ├── context/            # 项目上下文缓存
 ├── hooks/              # 事件钩子
-├── docs/               # 元文档
+├── docs/               # 元文档（如 spec-kit-guide.md）
 └── tests/              # 配置测试
 ```
 
@@ -129,6 +132,167 @@ claude
 | `/review-pr` | 审查 Pull Request |
 | `/test` | 运行测试并处理失败 |
 | `/refactor` | 重构代码 |
+| `/spec` | 创建和管理项目规范（SPEC） |
+
+### Spec-Driven Development（规格驱动开发）
+
+本模板集成了 **SPEC 优先 + TDD 驱动**的开发模式：
+
+```
+规范（SPEC）→ 测试（Tests）→ 实现（Implementation）
+```
+
+**核心特性**：
+- `/spec` 命令：创建和管理规范文档
+- `spec-writer` Agent：专门的规范编写代理
+- 规范模板：function、API、feature 三种规范模板
+- Spec-Kit 集成：可选的官方规格驱动开发工具
+
+**工作流**：[`.claude/workflows/spec-driven-tdd.md`](.claude/workflows/spec-driven-tdd.md)
+**使用指南**：[`.claude/docs/spec-kit-guide.md`](.claude/docs/spec-kit-guide.md)
+
+---
+
+## Spec-Driven Development 使用指南
+
+### 快速开始
+
+#### 1. 创建规范
+
+使用 `/spec` 命令创建功能规范：
+
+```
+用户: /spec action=create type=function name=calculate_discount
+```
+
+Claude 会引导你完成：
+1. 选择规范类型（function/api/feature）
+2. 填写规范内容（输入/输出/业务规则/边界条件）
+3. 保存到 `.claude/specs/` 目录
+
+#### 2. 生成测试
+
+基于规范生成测试用例：
+
+```
+用户: /spec action=generate-tests name=calculate_discount
+```
+
+#### 3. 实现功能
+
+编写实现代码，运行测试验证：
+
+```
+用户: /test
+```
+
+### 使用方式
+
+#### 方式一：使用 /spec 命令
+
+| Action | 说明 | 示例 |
+|--------|------|------|
+| `create` | 创建新规范 | `/spec action=create type=function name=login` |
+| `view` | 查看规范 | `/spec action=view name=login` |
+| `update` | 更新规范 | `/spec action=update name=login` |
+| `list` | 列出所有规范 | `/spec action=list` |
+| `generate-tests` | 基于规范生成测试 | `/spec action=generate-tests name=login` |
+
+#### 方式二：使用 spec-writer Agent
+
+```
+用户: "帮我为用户登录功能编写规范"
+
+Claude 自动：
+1. 调用 spec-writer Agent
+2. 使用模板创建规范文档
+3. 保存到 .claude/specs/
+```
+
+#### 方式三：使用 Spec-Kit（可选）
+
+安装 Spec-Kit：
+
+```bash
+# Linux/macOS
+bash .claude/tools/spec-kit-init.sh
+
+# Windows PowerShell
+.\.claude\tools\spec-kit-init.ps1
+```
+
+使用 Spec-Kit CLI：
+
+```bash
+# 初始化项目
+specify init
+
+# 创建规范
+specify create
+
+# 生成实现
+specify implement
+```
+
+### 规范类型
+
+| 类型 | 说明 | 模板 |
+|------|------|------|
+| **function** | 函数/方法规范 | `.claude/templates/specs/function-spec.md` |
+| **api** | API 端点规范 | `.claude/templates/specs/api-spec.md` |
+| **feature** | 功能模块规范 | `.claude/templates/specs/feature-spec.md` |
+| **module** | 模块/子系统规范 | 基于 feature 模板 |
+
+### 完整工作流示例
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  1. 创建规范                                                  │
+│     /spec action=create type=function name=calculate_discount │
+├─────────────────────────────────────────────────────────────┤
+│  2. 查看规范                                                  │
+│     /spec action=view name=calculate_discount               │
+├─────────────────────────────────────────────────────────────┤
+│  3. 生成测试                                                  │
+│     /spec action=generate-tests name=calculate_discount     │
+├─────────────────────────────────────────────────────────────┤
+│  4. 运行测试 (RED - 失败)                                     │
+│     /test                                                   │
+├─────────────────────────────────────────────────────────────┤
+│  5. 编写实现代码                                             │
+│     [编写满足规范的代码]                                      │
+├─────────────────────────────────────────────────────────────┤
+│  6. 运行测试 (GREEN - 通过)                                   │
+│     /test                                                   │
+├─────────────────────────────────────────────────────────────┤
+│  7. 代码审查与重构                                           │
+│     /refactor                                               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 规范存储
+
+规范文件存储在 `.claude/specs/` 目录：
+
+```
+.claude/specs/
+├── function/         # 函数规范
+│   ├── calculate_discount.md
+│   └── user_login.md
+├── api/             # API 规范
+│   ├── users_list.md
+│   └── orders_create.md
+└── feature/         # 功能规范
+    └── user_auth.md
+```
+
+### 最佳实践
+
+1. **规范优先**：在编写代码之前先创建规范
+2. **明确性**：使用精确的语言描述需求和边界条件
+3. **可测试性**：确保每个规则都可以被测试验证
+4. **版本控制**：规范文件应纳入 Git 版本控制
+5. **持续更新**：需求变化时及时更新规范
 
 ### Agents（代理）
 
@@ -148,6 +312,9 @@ claude
 | `test-writer` | 编写测试 |
 | `debugger` | Bug 诊断 |
 | `refactor-agent` | 代码重构 |
+| `spec-writer` | 编写规范文档 |
+| `code-writer` | 编写实现代码 |
+| `orchestrator` | 主控代理（任务分解和调度） |
 
 #### 内置子代理（Claude Code 原生）
 
@@ -161,6 +328,7 @@ claude
 
 | 工作流 | 功能 |
 |--------|------|
+| `spec-driven-tdd` | 规格驱动 TDD 开发流程 |
 | `feature-development` | 新功能开发全流程 |
 | `bug-fix-flow` | Bug 修复流程 |
 | `refactor-flow` | 代码重构流程 |
@@ -184,12 +352,14 @@ claude
 │  4. 结果整合                 │
 └─────────────────────────────┘
     ↓
+    ├─→ spec-writer (编写规范)
+    ├─→ test-writer (生成测试)
+    ├─→ code-writer (实现代码)
+    ├─→ code-reviewer (代码审查)
+    ├─→ debugger (Bug 诊断)
     ├─→ Explore (代码探索)
     ├─→ Plan (架构设计)
-    ├─→ code-reviewer (代码审查)
-    ├─→ test-writer (测试编写)
-    ├─→ debugger (Bug 诊断)
-    └─→ /commit, /test, /review-pr (Skills)
+    └─→ /commit, /test, /spec (Skills)
     ↓
 整合结果返回用户
 ```
@@ -199,6 +369,7 @@ claude
 - **并行化**：独立任务可并行执行
 - **可扩展**：容易添加新的子代理
 - **智能化**：主控根据任务类型自动选择最佳执行路径
+- **规范驱动**：支持 SPEC 优先的开发模式
 
 ### Skills（技能）
 
@@ -320,6 +491,31 @@ A: 直接删除不需要的文件/目录即可。模板是起点，不是束缚�
 ### Q: 如何贡献改进？
 
 A: 提交 PR 到模板仓库，描述改进内容和适用场景。
+
+### Q: Spec-Kit 必须安装吗？
+
+A: 不是必须的。本模板提供了独立的规范系统：
+- ✅ 使用 `/spec` 命令和 `spec-writer` Agent（无需 Spec-Kit）
+- ✅ 可选安装 Spec-Kit 获得额外功能
+
+安装 Spec-Kit：
+```bash
+# Linux/macOS
+bash .claude/tools/spec-kit-init.sh
+
+# Windows PowerShell
+.\.claude\tools\spec-kit-init.ps1
+```
+
+### Q: 如何使用规格驱动开发？
+
+A: 参考 [`.claude/workflows/spec-driven-tdd.md`](.claude/workflows/spec-driven-tdd.md) 和 [`.claude/docs/spec-kit-guide.md`](.claude/docs/spec-kit-guide.md)。
+
+基本流程：
+1. 使用 `/spec` 命令创建规范
+2. 基于规范生成测试
+3. 实现功能代码
+4. 运行测试验证
 
 ## 许可证
 
