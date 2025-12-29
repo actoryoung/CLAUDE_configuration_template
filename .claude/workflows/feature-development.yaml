@@ -12,6 +12,40 @@ orchestrator:
     - 分配任务给子代理
     - 整合子代理结果
     - 跟踪执行进度
+    - 执行验证闭环
+    - 管理检查点和回退
+
+# 检查点定义
+checkpoints:
+  - name: "exploration_done"
+    after_step: 1
+    snapshot:
+      - 相关文件列表
+      - 代码结构理解
+      - 依赖关系图
+  - name: "plan_approved"
+    after_step: 2
+    snapshot:
+      - implementation-plan.md
+      - 技术方案
+      - 风险评估
+  - name: "tests_defined"
+    after_step: "3.1"
+    snapshot:
+      - 测试文件列表
+      - 测试用例定义
+      - 当前测试状态（应失败）
+  - name: "tests_passing"
+    after_step: "3.2"
+    snapshot:
+      - 测试结果
+      - 实现文件列表
+      - 构建状态
+  - name: "review_done"
+    after_step: 4
+    snapshot:
+      - review-report.md
+      - 已修复问题列表
 
 steps:
   - name: "1. 需求分析与代码探索"
@@ -32,6 +66,11 @@ steps:
       - 识别技术权衡
       - 评估潜在风险
     output: implementation-plan.md
+    checkpoint_after: plan_approved
+    verification:
+      - 方案可执行
+      - 风险已识别
+      - 技术选型合理
 
   - name: "3. TDD 开发循环"
     mode: implement
@@ -42,18 +81,31 @@ steps:
         actions:
           - RED: 编写失败测试
           - 定义接口和行为
+        checkpoint_after: tests_defined
+        verification:
+          - 测试文件已创建
+          - 测试运行失败（符合预期）
+          - 测试覆盖核心场景
 
       - name: "3.2 实现功能"
-        executor: orchestrator
+        agent: code-writer
         actions:
           - GREEN: 实现最少代码
           - 确保测试通过
+        checkpoint_after: tests_passing
+        verification:
+          - 所有测试通过
+          - 构建成功
+          - 无新增警告
 
       - name: "3.3 重构优化"
-        executor: orchestrator
+        agent: refactor-agent
         actions:
           - REFACTOR: 优化代码结构
           - 保持测试通过
+        verification:
+          - 测试仍然通过
+          - 代码质量改善
     loop: true
     until:
       - 所有功能测试通过
@@ -68,6 +120,11 @@ steps:
       - 评估可维护性
       - 提供改进建议
     output: review-report.md
+    checkpoint_after: review_done
+    verification:
+      - 审查报告已生成
+      - 关键问题已处理
+      - 安全问题已修复
 
   - name: "5. 集成验证"
     mode: verify
@@ -77,6 +134,10 @@ steps:
       - 验证 API 兼容性
       - 检查性能影响
       - 确认无回归问题
+    verification:
+      - 所有测试通过
+      - 无回归问题
+      - 性能可接受
 
   - name: "6. 文档更新"
     executor: orchestrator
@@ -117,3 +178,40 @@ scheduling_strategy:
   explore_and_plan: sequential  # 探索和设计串行
   test_and_implement: loop      # 测试和实现循环
   independent_tasks: parallel   # 独立任务并行
+
+# 错误处理策略
+error_handling:
+  step_1_exploration:
+    on_failure: L2
+    retry: 1
+    fallback: "询问用户相关文件位置"
+
+  step_2_plan:
+    on_failure: L3
+    checkpoint: exploration_done
+    fallback: "请求用户提供更多需求细节"
+
+  step_3_tdd_loop:
+    substep_3_1_tests:
+      on_failure: L2
+      retry: 2
+      fallback: "简化测试用例"
+    substep_3_2_implement:
+      on_failure: L2
+      retry: 2
+      checkpoint: tests_defined
+      fallback: "回退到测试定义，重新检查需求"
+    substep_3_3_refactor:
+      on_failure: L1
+      retry: 0
+      fallback: "跳过重构，保持当前实现"
+
+  step_4_review:
+    on_failure: L2
+    retry: 1
+    fallback: "标记问题，继续执行，由用户决定"
+
+  step_5_integration:
+    on_failure: L3
+    checkpoint: tests_passing
+    fallback: "回退到 tests_passing，修复回归问题"
