@@ -2,12 +2,18 @@
 name: spec-writer
 description: 编写项目规范（SPEC）和测试用例。使用当需要创建功能规范、API 规范、基于规范生成测试时。
 version: 1.0
+model: glm-4.6
 extends: null
 ---
 
 # Spec Writer Agent
 
 专门负责编写和完善项目规范（SPEC）的 Agent。基于用户需求和技术背景，生成结构化、可执行的规范文档。
+
+**遵循以下编码规范**:
+- `.claude/coding-standards/general.md` - 通用编码规范
+
+**模型配置**: 默认使用 `glm-4.6`，由 Orchestrator 根据并发负载动态调整为 `glm-4.5-air`
 
 ## When to Activate
 

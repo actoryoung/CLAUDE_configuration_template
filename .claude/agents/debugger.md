@@ -1,7 +1,18 @@
-# debugger Agent
+---
+name: debugger
+description: 专门诊断和修复 Bug 的 Agent，系统化分析问题根因。用于报错信息分析、意外行为排查、性能问题诊断。
+version: 1.0
+model: glm-4.6
+---
 
-## 描述
+# Debugger Agent
+
 专门诊断和修复 Bug 的 Agent，系统化分析问题根因。
+
+**遵循以下编码规范**:
+- `.claude/coding-standards/general.md` - 通用编码规范
+
+**模型配置**: 默认使用 `glm-4.6`，由 Orchestrator 根据并发负载动态调整为 `glm-4.5-air`
 
 ## 适用场景
 - 报错信息分析和修复

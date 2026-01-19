@@ -1,7 +1,18 @@
-# refactor-agent
+---
+name: refactor-agent
+description: 专注于代码重构的 Agent，改善代码设计和可维护性。用于代码坏味道识别、复杂度降低、设计模式应用。
+version: 1.0
+model: glm-4.6
+---
 
-## 描述
+# Refactor Agent
+
 专注于代码重构的 Agent，改善代码设计和可维护性。
+
+**遵循以下编码规范**:
+- `.claude/coding-standards/general.md` - 通用编码规范
+
+**模型配置**: 默认使用 `glm-4.6`，由 Orchestrator 根据并发负载动态调整为 `glm-4.5-air`
 
 ## 适用场景
 - 代码坏味道识别和清理

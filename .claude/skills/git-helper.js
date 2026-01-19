@@ -2,6 +2,10 @@
  * Git Helper Skill
  *
  * Git 操作辅助技能，提供常用 Git 命令和工作流。
+ *
+ * 遵循规范:
+ * - .claude/coding-standards/general.md
+ * - .claude/coding-standards/code-review.md
  */
 
 /**
@@ -81,25 +85,77 @@ function generateCommitMessage(type, scope, subject, body = '', footer = '') {
 
 /**
  * Git 操作检查清单
+ * 遵循代码审查规范
  */
 const GIT_CHECKLIST = {
   beforeCommit: [
     '代码是否通过所有测试？',
     '是否添加了必要的文档？',
     '提交信息是否符合规范？',
-    '是否有敏感信息被提交？'
+    '是否有敏感信息被提交？',
+    '文件是否使用 UTF-8 编码保存？',
+    '是否遵守了编码规范？'
   ],
   beforePush: [
     '是否拉取了最新代码？',
     '是否有冲突需要解决？',
-    '是否通过了本地构建？'
+    '是否通过了本地构建？',
+    '测试覆盖率是否达标？'
   ],
   beforeMerge: [
     '是否完成了代码审查？',
     'CI 检查是否通过？',
-    '是否有未完成的 TODO？'
+    '是否有未完成的 TODO？',
+    'PR 大小是否合理（< 1000 行）？'
   ]
 };
+
+/**
+ * PR 模板
+ * 遵循代码审查规范
+ */
+const PR_TEMPLATE = `
+## 描述
+简要描述此 PR 的目的和内容。
+
+## 类型
+- [ ] 新功能
+- [ ] Bug 修复
+- [ ] 重构
+- [ ] 文档更新
+- [ ] 性能优化
+- [ ] 其他：______
+
+## 变更内容
+- [ ] 变更点 1
+- [ ] 变更点 2
+- [ ] 变更点 3
+
+## 测试
+- [ ] 单元测试已添加/更新
+- [ ] 集成测试已通过
+- [ ] 手动测试已完成
+
+## 检查清单
+- [ ] 代码符合编码规范
+- [ ] 代码已自审
+- [ ] 注释清晰必要
+- [ ] 文档已更新
+- [ ] 无调试代码
+- [ ] 无敏感信息
+- [ ] 文件使用 UTF-8 编码
+- [ ] 遵循 API 设计规范（如适用）
+- [ ] 遵循测试规范（如适用）
+
+## 关联 Issue
+Closes #123, #456
+
+## 截图/演示
+（如果是 UI 变更，提供截图或演示）
+
+## 备注
+其他需要说明的信息
+`;
 
 /**
  * 获取 Git 工作流命令序列
@@ -116,7 +172,8 @@ function getWorkflowCommands(workflow, branchName) {
       '# 开发完成后:',
       `git add .`,
       `git commit -m "feat: description"`,
-      `git push origin ${branchName}`
+      `git push origin ${branchName}`,
+      '# 创建 PR 进行代码审查'
     ],
     [WORKFLOWS.BUGFIX]: [
       `git checkout develop`,
@@ -125,7 +182,8 @@ function getWorkflowCommands(workflow, branchName) {
       '# 修复完成后:',
       `git add .`,
       `git commit -m "fix: description"`,
-      `git push origin ${branchName}`
+      `git push origin ${branchName}`,
+      '# 创建 PR 进行代码审查'
     ],
     [WORKFLOWS.HOTFIX]: [
       `git checkout main`,
@@ -135,6 +193,7 @@ function getWorkflowCommands(workflow, branchName) {
       `git add .`,
       `git commit -m "fix: description"`,
       `git push origin ${branchName}`,
+      '# 创建紧急修复 PR',
       '# 合并到 main 和 develop'
     ],
     [WORKFLOWS.REFACTOR]: [
@@ -142,18 +201,45 @@ function getWorkflowCommands(workflow, branchName) {
       '# 重构完成后:',
       `git add .`,
       `git commit -m "refactor: description"`,
-      `git push origin ${branchName}`
+      `git push origin ${branchName}`,
+      '# 创建 PR 进行代码审查'
     ]
   };
 
   return commands[workflow] || [];
 }
 
+/**
+ * 生成 PR 标题
+ * 遵循 Conventional Commits 规范
+ * @param {string} type - 提交类型
+ * @param {string} description - 描述
+ * @returns {string} PR 标题
+ */
+function generatePRTitle(type, description) {
+  return `${type}: ${description}`;
+}
+
+/**
+ * 审查质量指标
+ */
+const REVIEW_METRICS = {
+  maxPRSize: 1000,
+  idealPRSize: 400,
+  maxResponseTime: 24, // 小时
+  maxMergeTime: 48, // 小时
+  minCodeCoverage: 70, // 百分比
+  minReviewers: 1
+};
+
 module.exports = {
   WORKFLOWS,
   COMMIT_TYPES,
   generateBranchName,
   generateCommitMessage,
+  generatePRTitle,
   GIT_CHECKLIST,
-  getWorkflowCommands
+  PR_TEMPLATE,
+  getWorkflowCommands,
+  REVIEW_METRICS
 };
